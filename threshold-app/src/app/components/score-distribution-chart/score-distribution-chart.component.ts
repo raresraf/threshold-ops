@@ -1,4 +1,4 @@
-import { Component, Input, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, Input, OnChanges, SimpleChanges, ElementRef } from '@angular/core';
 import { ChartConfiguration, ChartOptions } from 'chart.js';
 import { CalculationResults } from '../../logic/model';
 import { BaseChartDirective } from 'ng2-charts';
@@ -20,15 +20,15 @@ export class ScoreDistributionChartComponent implements OnChanges {
       {
         data: [],
         label: 'Estimated True Positives (TP)',
-        borderColor: 'rgb(75, 192, 192)',
-        backgroundColor: 'rgba(75, 192, 192, 0.5)',
+        borderColor: 'rgb(15, 157, 88)',
+        backgroundColor: 'rgba(15, 157, 88, 0.5)',
         tension: 0.1,
       },
       {
         data: [],
         label: 'Estimated False Positives (FP)',
-        borderColor: 'rgb(255, 99, 132)',
-        backgroundColor: 'rgba(255, 99, 132, 0.5)',
+        borderColor: 'rgb(219, 68, 55)',
+        backgroundColor: 'rgba(219, 68, 55, 0.5)',
         tension: 0.1,
       }
     ]
@@ -44,7 +44,7 @@ export class ScoreDistributionChartComponent implements OnChanges {
         display: true,
         text: 'Estimated TP and FP vs. Detection Threshold',
         font: {
-            family: "'Times New Roman', Times, serif",
+            family: "'Roboto', 'Times New Roman', Times, serif",
             size: 18,
             weight: 'normal',
         }
@@ -70,6 +70,19 @@ export class ScoreDistributionChartComponent implements OnChanges {
         }
     }
   };
+
+  constructor(private el: ElementRef) {}
+
+  ngOnInit(): void {
+    const computedStyle = getComputedStyle(this.el.nativeElement);
+    const gcpGreen = computedStyle.getPropertyValue('--gcp-green').trim();
+    const gcpRed = computedStyle.getPropertyValue('--gcp-red').trim();
+
+    this.data.datasets[0].borderColor = gcpGreen;
+    this.data.datasets[0].backgroundColor = this.hexToRgba(gcpGreen, 0.5);
+    this.data.datasets[1].borderColor = gcpRed;
+    this.data.datasets[1].backgroundColor = this.hexToRgba(gcpRed, 0.5);
+  }
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['results'] && this.results) {
@@ -115,5 +128,13 @@ export class ScoreDistributionChartComponent implements OnChanges {
     if (this.options.plugins?.annotation) {
       this.options.plugins.annotation.annotations = {};
     }
+  }
+
+  private hexToRgba(hex: string, alpha: number): string {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
   }
 }

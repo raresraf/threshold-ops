@@ -1,4 +1,4 @@
-import { Component, Input, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, Input, OnChanges, SimpleChanges, ElementRef } from '@angular/core';
 import { ChartConfiguration, ChartOptions } from 'chart.js';
 import { CalculationResults } from '../../logic/model';
 import { BaseChartDirective } from 'ng2-charts';
@@ -21,8 +21,8 @@ export class PrecisionRecallChartComponent implements OnChanges {
       {
         data: [],
         label: 'Estimated Cost Function Φ(θ)',
-        borderColor: 'rgb(54, 162, 235)',
-        backgroundColor: 'rgba(54, 162, 235, 0.5)',
+        borderColor: 'rgb(66, 133, 244)',
+        backgroundColor: 'rgba(66, 133, 244, 0.5)',
         tension: 0.1,
       }
     ]
@@ -38,7 +38,7 @@ export class PrecisionRecallChartComponent implements OnChanges {
         display: true,
         text: 'Estimated Review Cost vs. Detection Threshold',
         font: {
-            family: "'Times New Roman', Times, serif",
+            family: "'Roboto', 'Times New Roman', Times, serif",
             size: 18,
             weight: 'normal',
         }
@@ -62,6 +62,22 @@ export class PrecisionRecallChartComponent implements OnChanges {
         }
     }
   };
+
+  private gcpBlue = '#4285F4';
+  private gcpRed = '#DB4437';
+  private gcpYellow = '#F4B400';
+
+  constructor(private el: ElementRef) {}
+
+  ngOnInit(): void {
+    const computedStyle = getComputedStyle(this.el.nativeElement);
+    this.gcpBlue = computedStyle.getPropertyValue('--gcp-blue').trim() || this.gcpBlue;
+    this.gcpRed = computedStyle.getPropertyValue('--gcp-red').trim() || this.gcpRed;
+    this.gcpYellow = computedStyle.getPropertyValue('--gcp-yellow').trim() || this.gcpYellow;
+
+    this.data.datasets[0].borderColor = this.gcpBlue;
+    this.data.datasets[0].backgroundColor = this.hexToRgba(this.gcpBlue, 0.5);
+  }
 
   ngOnChanges(changes: SimpleChanges): void {
     if ((changes['results'] && this.results) || changes['budget']) {
@@ -110,14 +126,14 @@ export class PrecisionRecallChartComponent implements OnChanges {
               type: 'line',
               yMin: this.budget,
               yMax: this.budget,
-              borderColor: 'rgb(255, 99, 132)',
+              borderColor: this.gcpRed,
               borderWidth: 2,
               borderDash: [10, 5],
               label: {
                 content: `Budget (${this.budget.toLocaleString()} min)`,
                 display: true,
                 position: 'end',
-                backgroundColor: 'rgba(255, 99, 132, 0.8)'
+                backgroundColor: this.hexToRgba(this.gcpRed, 0.8)
               }
             },
             ...(optimalTheta && optimalThetaIndex !== -1 && {
@@ -125,7 +141,7 @@ export class PrecisionRecallChartComponent implements OnChanges {
                   type: 'point',
                   xValue: optimalThetaIndex,
                   yValue: cost,
-                  backgroundColor: 'rgb(75, 192, 192)',
+                  backgroundColor: this.gcpYellow,
                   radius: 6,
               },
               optimalLabel: {
@@ -147,5 +163,13 @@ export class PrecisionRecallChartComponent implements OnChanges {
         }
       }
     };
+  }
+
+  private hexToRgba(hex: string, alpha: number): string {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
   }
 }
