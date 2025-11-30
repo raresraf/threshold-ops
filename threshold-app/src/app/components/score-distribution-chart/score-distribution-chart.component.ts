@@ -1,0 +1,119 @@
+import { Component, Input, OnChanges, SimpleChanges } from '@angular/core';
+import { ChartConfiguration, ChartOptions } from 'chart.js';
+import { CalculationResults } from '../../logic/model';
+import { BaseChartDirective } from 'ng2-charts';
+import { CommonModule } from '@angular/common';
+
+@Component({
+  selector: 'app-score-distribution-chart',
+  templateUrl: './score-distribution-chart.component.html',
+  styleUrls: ['./score-distribution-chart.component.css'],
+  standalone: true,
+  imports: [BaseChartDirective, CommonModule],
+})
+export class ScoreDistributionChartComponent implements OnChanges {
+  @Input() results: CalculationResults | null = null;
+
+  public data: ChartConfiguration<'line'>['data'] = {
+    labels: [],
+    datasets: [
+      {
+        data: [],
+        label: 'Estimated True Positives (TP)',
+        borderColor: 'rgb(75, 192, 192)',
+        backgroundColor: 'rgba(75, 192, 192, 0.5)',
+        tension: 0.1,
+      },
+      {
+        data: [],
+        label: 'Estimated False Positives (FP)',
+        borderColor: 'rgb(255, 99, 132)',
+        backgroundColor: 'rgba(255, 99, 132, 0.5)',
+        tension: 0.1,
+      }
+    ]
+  };
+
+  public options: ChartOptions<'line'> = {
+    responsive: true,
+    plugins: {
+      legend: {
+        position: 'top',
+      },
+      title: {
+        display: true,
+        text: 'Estimated TP and FP vs. Detection Threshold',
+        font: {
+            family: "'Times New Roman', Times, serif",
+            size: 18,
+            weight: 'normal',
+        }
+      },
+      annotation: {
+        annotations: {}
+      }
+    },
+    scales: {
+        x: {
+            title: {
+                display: true,
+                text: 'Detection Threshold (θ)'
+            }
+        },
+        y: {
+            title: {
+                display: true,
+                text: 'Estimated # of Items'
+            },
+            type: 'linear',
+            min: 0,
+        }
+    }
+  };
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['results'] && this.results) {
+      this.updateChart();
+    }
+  }
+
+  private updateChart(): void {
+    if (!this.results) return;
+
+    const newLabels: (string | null)[] = [];
+    const newTPData: (number | null)[] = [];
+    const newFPData: (number | null)[] = [];
+
+    const gapThreshold = 0.2;
+
+    for (let i = 0; i < this.results.tilde_TP_values.length; i++) {
+      const currentPoint = this.results.tilde_TP_values[i];
+      const currentFPPoint = this.results.tilde_FP_values[i];
+
+      if (i > 0) {
+        const prevPoint = this.results.tilde_TP_values[i - 1];
+        if (currentPoint.theta - prevPoint.theta > gapThreshold) {
+          newLabels.push('...');
+          newTPData.push(null);
+          newFPData.push(null);
+        }
+      }
+
+      newLabels.push(currentPoint.theta.toFixed(2));
+      newTPData.push(currentPoint.value);
+      newFPData.push(currentFPPoint.value);
+    }
+    
+    this.data = {
+      labels: newLabels as string[],
+      datasets: [
+        { ...this.data.datasets[0], data: newTPData },
+        { ...this.data.datasets[1], data: newFPData }
+      ]
+    };
+
+    if (this.options.plugins?.annotation) {
+      this.options.plugins.annotation.annotations = {};
+    }
+  }
+}
